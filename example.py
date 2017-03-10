@@ -1,11 +1,11 @@
-import pytticpx.pytticpx
+import pytticpx
 
 import time 
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-cpx = pytticpx.pytticpx.CPX()
+cpx = pytticpx.CPX()
 cpx.connect("172.16.17.55", 9221)
 
 print(cpx.getIdentifier())
