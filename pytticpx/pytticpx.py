@@ -1,355 +1,415 @@
 import socket
 import logging
 
-class CPXBackend:
 
+class TTiCPXExc(Exception):
+    pass
+
+
+class CPXBackend(object):
     def __init__(self):
-        self.sock = None
-        self.sock_file = None
+        self._sock = None
+        self._sock_file = None
 
         # Documentation http://resources.aimtti.com/manuals/CPX400DP_Instruction_Manual-Iss1.pdf
         # Omitted commands "*TST?", "*TRG", "WAI", "*OPC", "*OPC?", 
-        self.valid_commands = ["V1", "V2", "V1?", "V2?", "OVP1", "OVP2", "I1", "I2", 
-                                    "V1V", "V2V", "OCP1", "OCP2", "I1?", "I2?", "OVP1?", 
-                                    "OVP2?", "OCP1?", "OCP2?", "V1O?", "V2O?", "I1O?", "I2O?",
-                                    "DELTAV1", "DELTAV2", "DELTAI1", "DELTAI2", "DELTAV1?", 
-                                    "DELTAV2?", "DELTAI1?", "DELTAI2?", "INCV1", "INCV2", 
-                                    "INCV1V", "INCV2V", "DECV1", "DECV2", "DECV1V", "DECV2V",
-                                    "INCI1", "INCI2", "DECI1", "DECI2", "OP1", "OP2", "OPALL",
-                                    "IFLOCK", "IFLOCK?", "IFUNLOCK", "LSR1?", "LSR2?", "LSE1",
-                                    "LSE2", "LSE1?", "LSE2?", "SAV1", "SAV2", "RCL1", "RCL2", 
-                                    "CONFIG", "CONFIG?", "RATIO", "RATIO?", "*CLS", "EER?", 
-                                    "*ESE", "*ESE?", "*ESR?", "*IST?", "*PRE", "*STB?", 
-                                    "*PRE?", "QER?", "*RST", "*SRE", "*SRE?", "*IDN?", 
-                                    "ADDRESS?", "OP1?", "OP2?", "TRIPRST", "LOCAL",
-                                    ]
-
+        self.valid_commands = ["V1", "V2", "V1?", "V2?", "OVP1", "OVP2", "I1", "I2",
+                               "V1V", "V2V", "OCP1", "OCP2", "I1?", "I2?", "OVP1?",
+                               "OVP2?", "OCP1?", "OCP2?", "V1O?", "V2O?", "I1O?", "I2O?",
+                               "DELTAV1", "DELTAV2", "DELTAI1", "DELTAI2", "DELTAV1?",
+                               "DELTAV2?", "DELTAI1?", "DELTAI2?", "INCV1", "INCV2",
+                               "INCV1V", "INCV2V", "DECV1", "DECV2", "DECV1V", "DECV2V",
+                               "INCI1", "INCI2", "DECI1", "DECI2", "OP1", "OP2", "OPALL",
+                               "IFLOCK", "IFLOCK?", "IFUNLOCK", "LSR1?", "LSR2?", "LSE1",
+                               "LSE2", "LSE1?", "LSE2?", "SAV1", "SAV2", "RCL1", "RCL2",
+                               "CONFIG", "CONFIG?", "RATIO", "RATIO?", "*CLS", "EER?",
+                               "*ESE", "*ESE?", "*ESR?", "*IST?", "*PRE", "*STB?",
+                               "*PRE?", "QER?", "*RST", "*SRE", "*SRE?", "*IDN?",
+                               "ADDRESS?", "OP1?", "OP2?", "TRIPRST", "LOCAL",
+                               ]
 
     def connect(self, ip, port):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((ip, port))
-        self.sock_file = self.sock.makefile()
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._sock.connect((ip, port))
+        self._sock_file = self._sock.makefile()
 
     def disconnect(self):
+        if self._sock:
+            self._sock.close()
+            self._sock = None
+            self._sock_file = None
 
-        self.sock.close()   
+    def _sock_send(self, s):
+        if self._sock:
+            try:
+                self._sock.send(s)
+            except:
+                self.disconnect()
+                raise
+        else:
+            raise TTiCPXExc("Client not connected")
 
-    def executeCommand(self, command):
+    def execute_command(self, command):
         if command.split()[0] not in self.valid_commands:
-            logging.error("INVALID COMMAND: " + command)
-            return 1
-        else:
-            self.sock.send(str.encode(command))
-            return 0
+            msg = "INVALID COMMAND: {}".format(command)
+            logging.error(msg)
+            raise Exception(msg)
+        self._sock_send(str.encode(command))
 
-    def readResponse(self):
-        return self.sock_file.readline()[:-1]
+    def read_response(self):
+        return self._sock_file.readline()[:-1]
 
-    def checkIfError(self):
-        self.executeCommand("*ESR?")
-        err = int(self.readResponse())
+    def check_if_error(self):
+        self.execute_command("*ESR?")
+        err = int(self.read_response())
         if err != 0:
-            if err & (1<<5):
-                logging.error("Command error detected")
-            if err & (1<<4):
-                self.executeCommand("EER?")
-                exe_err = int(self.readResponse())
-                if exe_err >= 1 and exe_err <= 9:
-                    logging.error("[Execution error] Internal hardware error")
+            if err & (1 << 5):
+                msg = "Command error detected"
+                logging.error(msg)
+                raise TTiCPXExc(msg)
+
+            if err & (1 << 4):
+                self.execute_command("EER?")
+                exe_err = int(self.read_response())
+                if 1 <= exe_err <= 9:
+                    msg = "[Execution error] Internal hardware error"
+                    logging.error(msg)
+                    raise TTiCPXExc(msg)
                 elif exe_err == 100:
-                    logging.error("[Execution error] Range error")
+                    msg = "[Execution error] Range error"
+                    logging.error(msg)
+                    raise TTiCPXExc(msg)
                 elif exe_err == 101:
-                    logging.error("[Execution error] Corrupted data")
+                    msg = "[Execution error] Corrupted data"
+                    logging.error(msg)
+                    raise TTiCPXExc(msg)
                 elif exe_err == 102:
-                    logging.error("[Execution error] There are no data")
+                    msg = "[Execution error] There are no data"
+                    logging.error(msg)
+                    raise TTiCPXExc(msg)
                 elif exe_err == 103:
-                    logging.error("[Execution error] Second output not available")
+                    msg = "[Execution error] Second output not available"
+                    logging.error(msg)
+                    raise TTiCPXExc(msg)
                 elif exe_err == 104:
-                    logging.error("[Execution error] Command not valid with output on")
+                    msg = "[Execution error] Command not valid with output on"
+                    logging.error(msg)
+                    raise TTiCPXExc(msg)
                 elif exe_err == 200:
-                    logging.error("[Execution error] Cannot write (read only)")
+                    msg = "[Execution error] Cannot write (read only)"
+                    logging.error(msg)
+                    raise TTiCPXExc(msg)
 
-            if err & (1<<3):
-                logging.error("Verify timeout detected")
-            if err & (1<<2):
-                logging.error("Query error detected")
-                
-        return err
+            if err & (1 << 3):
+                msg = "Verify timeout detected"
+                logging.error(msg)
+                raise TTiCPXExc(msg)
+            if err & (1 << 2):
+                msg = "Query error detected"
+                logging.error(msg)
+                raise TTiCPXExc(msg)
 
 
+class CPXModes(object):
+    tracking = 2
+    independent = 0
 
-class CPX:
+
+class CPX(object):
     def __init__(self):
-        self.cpx = CPXBackend()  
+        self.cpx = CPXBackend()
 
-    # Helper function that executes a command and reads the response
+        # Helper function that executes a command and reads the response
+
     # this function only should be used with commands that returns a response
-    def _processCommand(self, cmd):
+    def _process_command(self, cmd):
         logging.info("Processing " + cmd)
-        if self.cpx.executeCommand(cmd) > 0:
-            return None
 
-        data = self.cpx.readResponse()
-        err = self.cpx.checkIfError()
-        if err == 0:
-            return data
-        else:
-            return None
+        self.cpx.execute_command(cmd)  # If an error happens with socket it will raise an exception or if it is not conn
 
-    def _executeCommand(self, cmd):
+        data = self.cpx.read_response()
+        self.cpx.check_if_error()  # if there is an error it raises TTiCPXExc
+        return data
+
+    def _execute_command(self, cmd):
         logging.info("Executing " + cmd)
-        err = self.cpx.executeCommand(cmd)
-        if err > 0:
-            return err
-        return self.cpx.checkIfError()
+        self.cpx.execute_command(cmd)  # If an error happens with socket it will raise an exception or if it is not conn
+        self.cpx.check_if_error()  # if there is an error it raises TTiCPXExc
 
-    def _getStatus(self, output):
-        cmd = "OP{}?".format(output)
-        return self._processCommand(cmd)     
+    @staticmethod
+    def _check_output(output):
+        output = int(output)  ## can raise ValueError
+        if output not in (1, 2):
+            raise TTiCPXExc("Only valid values for output are 1 and 2")
+        return output
 
-    def _setMode(self, mode):
+    def _get_status(self, output):
+        cmd = "OP{}?".format(self._check_output(output))
+        return self._process_command(cmd)
+
+    def _set_mode(self, mode):
+        m = int(mode)
+        if m not in (0, 2):
+            raise TTiCPXExc("Only valid modes are 0 (independent) and 2 (tracking))")
         cmd = "CONFIG {}".format(mode)
-        return self._executeCommand(cmd)
+        return self._execute_command(cmd)
 
-    def _getMode(self):
-        return self._processCommand("CONFIG?")
+    def _get_mode(self):
+        return self._process_command("CONFIG?")
 
-    def connect(self, ip, port): 
+    def connect(self, ip, port):
         self.cpx.connect(ip, port)
 
-    def disconnect(self): 
+    def disconnect(self):
         self.cpx.disconnect()
 
     # COMMANDS 
 
-    def readRegisterStandardEventStatus(self):
-        return self._processCommand("*ESR?")
+    def set_mode_independent(self):
+        self._set_mode(CPXModes.independent)
 
-    def readRegisterLimitEventStatus(self, output):
-        cmd = "LSR{}?".format(output)
-        return self._processCommand(cmd)
+    def set_mode_tracking(self):
+        self._set_mode(CPXModes.tracking)
 
-    def readRegisterExecutionError(self):
-        return self._processCommand("EER?")
+    def is_independent_mode(self):
+        return int(self._get_mode()) == CPXModes.independent
 
-    def getIdentifier(self):
-        return self._processCommand("*IDN?")     
+    def is_tracking_mode(self):
+        return int(self._get_mode()) == CPXModes.tracking
 
-    def getAddress(self):
-        return self._processCommand("ADDRESS?")
+    # Not exposed as it should only be read from check_error
+    # def read_register_standard_event_status(self):
+    #     return self._process_command("*ESR?")
 
-    def clearStatus(self):
-        return self._executeCommand("*CLS")
+    def read_register_limit_event_status(self, output):
+        cmd = "LSR{}?".format(self._check_output(output))
+        return self._process_command(cmd)
+
+    def read_register_execution_error(self):
+        return self._process_command("EER?")
+
+    def get_identifier(self):
+        return self._process_command("*IDN?")
+
+    def get_address(self):
+        return self._process_command("ADDRESS?")
+
+    def clear_status(self):
+        self._execute_command("*CLS")
 
     def reset(self):
-        return self._executeCommand("*RST")
+        self._execute_command("*RST")
 
-    def clearTrip(self): 
-        return self._executeCommand("TRIPRST")
+    def clear_trip(self):
+        self._execute_command("TRIPRST")
 
     def local(self):
-        return self.cpx.executeCommand("LOCAL")
+        self._execute_command("LOCAL")
 
     def lock(self):
-        return self._processCommand("IFLOCK")
+        return self._process_command("IFLOCK")
 
-    def isLock(self):
-        return self._processCommand("IFLOCK?")
+    def is_lock(self):
+        return self._process_command("IFLOCK?")
 
     def unlock(self):
-        return self._processCommand("IFUNLOCK")
+        return self._process_command("IFUNLOCK")
 
-    def isIST(self):
-        return self._processCommand("*IST?") == "1"
+    def is_IST(self):
+        return self._process_command("*IST?") == "1"
 
-    def getRegisterQueryError(self):
-        return self._processCommand("QER?")
+    def get_register_query_error(self):
+        return self._process_command("QER?")
 
-    def getRegisterStatusByte(self):
-        return self._processCommand("*STB?")
+    def get_register_status_byte(self):
+        return self._process_command("*STB?")
 
-    def setRegisterServiceRequest(self, value):
-        cmd = "*SRE {}".format(value)
-        return self._executeCommand(cmd)
+    def set_register_service_request(self, value):
+        cmd = "*SRE {}".format(float(value))
+        self._execute_command(cmd)
 
-    def getRegisterServiceRequest(self):
-        return self._processCommand("*SRE?")
+    def get_register_service_request(self):
+        return self._process_command("*SRE?")
 
-    def setRegisterParallelPoll(self, value):
+    def set_register_parallel_poll(self, value):
         cmd = "*PRE {}".format(value)
-        return self._executeCommand(cmd)
+        self._execute_command(cmd)
 
-    def getRegisterParallelPoll(self):
-        return self._processCommand("*PRE?")
+    def get_register_parallel_poll(self):
+        return self._process_command("*PRE?")
 
-    def setRegisterEventStatus(self, value):
+    def set_register_event_status(self, value):
         cmd = "*ESE {}".format(value)
-        return self._executeCommand(cmd)
+        self._execute_command(cmd)
 
-    def getRegisterEventStatus(self):
-        return self._processCommand("*ESE?")
+    def get_register_event_status(self):
+        return self._process_command("*ESE?")
 
-    def setRegisterLimitEventStatus(self, output, value):
+    def set_register_limit_event_status(self, output, value):
         cmd = "*LSE{} {}".format(output, value)
-        return self._executeCommand(cmd)
+        self._execute_command(cmd)
 
-    def getRegisterLimitEventStatus(self, output):
+    def get_register_limit_event_status(self, output):
         cmd = "*LSE{}?".format(output)
-        return self._processCommand(cmd)
+        return self._process_command(cmd)
 
     def save(self, output, store):
         cmd = "SAV{} {}".format(output, store)
-        return self._executeCommand(cmd)
+        self._execute_command(cmd)
 
     def recall(self, output, store):
         cmd = "RCL{} {}".format(output, store)
-        return self._executeCommand(cmd)
+        self._execute_command(cmd)
 
-    def setRatio(self, value):
+    def set_ratio(self, value):
         cmd = "RATIO {}".format(value)
-        return self._executeCommand(cmd)
+        self._execute_command(cmd)
 
-    def getRatio(self):
-        return self._processCommand("RATIO?")
+    def get_ratio(self):
+        return self._process_command("RATIO?")
 
-    def setModeIndependent(self):
-        return self._setMode(2)
-
-    def setModeTracking(self):
-        return self._setMode(0)
-
-    def isModeIndependent(self):
-        return self._getMode() == "2"
-
-    def isModeTracking(self):
-        return self._getMode() == "0"
-
-    def setOn(self, *args):
-        if len(args) == 0:
-            cmd = "OPALL 1"
+    def enable_output(self, output_1=False, output_2=False):
+        if output_1:
+            if output_2:
+                cmd = "OPALL 1"
+            else:
+                cmd = "OP1 1"
+        elif output_2:
+            cmd = "OP2 1"
         else:
-            cmd = "OP{} 1".format(args[0])
+            return
 
-        return self._executeCommand(cmd)
+        self._execute_command(cmd)
 
-    def setOff(self, *args):
-        if len(args) == 0:
-            cmd = "OPALL 0"
+    def disable_output(self, output_1=False, output_2=False):
+        if output_1:
+            if output_2:
+                cmd = "OPALL 0"
+            else:
+                cmd = "OP1 0"
+        elif output_2:
+            cmd = "OP2 0"
         else:
-            cmd = "OP{} 0".format(args[0])
+            return
 
-        return self._executeCommand(cmd)
+        self._execute_command(cmd)
 
-    def isOn(self, output):
-        return self._getStatus(output) == "1"
+    def is_enabled(self, output):
+        return int(self._get_status(self._check_output(output))) == 1
 
-    def isOff(self, output):
-        return self._getStatus(output) == "0"
+    def is_disabled(self, output):
+        return int(self._get_status(self._check_output(output))) == 0
 
-    def setVoltage(self, output, value):
-        cmd = "V{} {}".format(output, value)
-        return self._executeCommand(cmd)
+    def set_voltage(self, output, volts):
+        cmd = "V{} {}".format(self._check_output(output), float(volts))
+        self._execute_command(cmd)
 
-    def setVoltageVerify(self, output, value):
-        cmd = "V{}V {}".format(output, value)
-        return self._executeCommand(cmd)
+    def set_voltage_verify(self, output, volts):
+        cmd = "V{}V {}".format(self._check_output(output), float(volts))
+        self._execute_command(cmd)
 
     # Returns the configured voltage
-    def getVoltage(self, output):
-        cmd = "V{}?".format(output)
-        data = self._processCommand(cmd)
-        if not data:
-            return data
-        return data.split()[1]
+    def get_voltage(self, output):
+        cmd = "V{}?".format(self._check_output(output))
+        data = self._process_command(cmd)
+        if data:
+            return data.split()[1]
+        raise TTiCPXExc("Command returned {}".format(data))
 
     # Reads the voltage of an output
-    def readVoltatge(self, output):
-        cmd = "V{}O?".format(output)
-        return self._processCommand(cmd)
+    def read_voltage(self, output):
+        cmd = "V{}O?".format(self._check_output(output))
+        return self._process_command(cmd)
 
-    def getOVP(self, output):
-        cmd = "OVP{}?".format(output)
-        data = self._processCommand(cmd)
-        if not data:
-            return data
-        return data.split()[1]
+    def get_OVP(self, output):
+        """
+        Over Voltage Protection
+        """
+        cmd = "OVP{}?".format(self._check_output(output))
+        data = self._process_command(cmd)
+        if data:
+            return data.split()[1]
+        raise TTiCPXExc("Command returned {}".format(data))
 
-    def setOVP(self, output, value):
-        cmd = "OVP{} {}".format(output, value)
-        return self._executeCommand(cmd)
+    def set_OVP(self, output, volts):
+        cmd = "OVP{} {}".format(self._check_output(output), float(volts))
+        self._execute_command(cmd)
 
-    def setDeltaVoltage(self, output, value):
-        cmd = "DELTAV{} {}".format(output, value)
-        return self._executeCommand(cmd)
+    def set_delta_voltage(self, output, volts):
+        cmd = "DELTAV{} {}".format(self._check_output(output), float(volts))
+        self._execute_command(cmd)
 
-    def getDeltaVoltage(self, output):
-        cmd = "DELTAV{}?".format(output)
-        data = self._processCommand(cmd)
-        if not data:
-            return data
-        return data.split()[1]
+    def get_delta_voltage(self, output):
+        cmd = "DELTAV{}?".format(self._check_output(output))
+        data = self._process_command(cmd)
+        if data:
+            return data.split()[1]
+        raise TTiCPXExc("Command returned {}".format(data))
 
-    def incVoltage(self, output):
-        cmd = "INCV{}".format(output)
-        return self._executeCommand(cmd)
+    def inc_voltage(self, output):
+        """
+        Increases voltage of output by a delta value, defined by set_delta_voltage
+        :param output: which output of the power supply will be affected
+        :return:
+        """
+        cmd = "INCV{}".format(self._check_output(output))
+        self._execute_command(cmd)
 
-    def incVoltageVerify(self, output):
-        cmd = "INCV{}V".format(output)
-        return self._executeCommand(cmd)
+    def inc_voltage_verify(self, output):
+        cmd = "INCV{}V".format(self._check_output(output))
+        self._execute_command(cmd)
 
-    def decVoltage(self, output):
-        cmd = "DECV{}".format(output)
-        return self._executeCommand(cmd)
+    def dec_voltage(self, output):
+        cmd = "DECV{}".format(self._check_output(output))
+        self._execute_command(cmd)
 
-    def decVoltageVerify(self, output):
-        cmd = "DECV{}V".format(output)
-        return self._executeCommand(cmd)
+    def dec_voltage_verify(self, output):
+        cmd = "DECV{}V".format(self._check_output(output))
+        self._execute_command(cmd)
 
-    def setCurrent(self, output, value):
-        cmd = "I{} {}".format(output, value)
-        return self._executeCommand(cmd)
+    def set_current_limit(self, output, amps):
+        cmd = "I{} {}".format(self._check_output(output), float(amps))
+        self._execute_command(cmd)
 
     # Returns the configured current
-    def getCurrent(self, output):
-        cmd = "I{}?".format(output)
-        data = self._processCommand(cmd)
-        if not data:
-            return data
-        return data.split()[1]
+    def get_current_limit(self, output):
+        cmd = "I{}?".format(self._check_output(output))
+        data = self._process_command(cmd)
+        if data:
+            return data.split()[1]
+        raise TTiCPXExc("Command returned {}".format(data))
 
     # Reads the current of an output
-    def readCurrent(self, output):
-        cmd = "I{}O?".format(output)
-        return self._processCommand(cmd)
+    def read_current(self, output):
+        cmd = "I{}O?".format(self._check_output(output))
+        return self._process_command(cmd)
 
-    def setOCP(self, output, value):
-        cmd = "OCP{} {}".format(output, value)
-        return self._executeCommand(cmd)
+    def set_OCP(self, output, amps):
+        cmd = "OCP{} {}".format(self._check_output(output), float(amps))
+        self._execute_command(cmd)
 
-    def getOCP(self, output):
-        cmd = "OCP{}?".format(output)
-        data = self._processCommand(cmd)
-        if not data:
-            return data
-        return data.split()[1]
+    def get_OCP(self, output):
+        cmd = "OCP{}?".format(self._check_output(output))
+        data = self._process_command(cmd)
+        if data:
+            return data.split()[1]
+        raise TTiCPXExc("Command returned {}".format(data))
 
-    def setDeltaCurrent(self, output, value):
-        cmd = "DELTAI{} {}".format(output, value)
-        return self._executeCommand(cmd)
+    def set_delta_current_limit(self, output, amps):
+        cmd = "DELTAI{} {}".format(self._check_output(output), float(amps))
+        self._execute_command(cmd)
 
-    def getDeltaCurrent(self, output):
-        cmd = "DELTAI{}?".format(output)
-        data = self._processCommand(cmd)
-        if not data:
-            return data
-        return data.split()[1]
+    def get_delta_current(self, output):
+        cmd = "DELTAI{}?".format(self._check_output(output))
+        data = self._process_command(cmd)
+        if data:
+            return data.split()[1]
+        raise TTiCPXExc("Command returned {}".format(data))
 
-    def incCurrent(self, output):
-        cmd = "INCI{}".format(output)
-        return self._executeCommand(cmd)
+    def inc_current_limit(self, output):
+        cmd = "INCI{}".format(self._check_output(output))
+        self._execute_command(cmd)
 
-    def decCurrent(self, output):
-        cmd = "DECI{}".format(output)
-        return self._executeCommand(cmd)
-
-
+    def dec_current(self, output):
+        cmd = "DECI{}".format(self._check_output(output))
+        self._execute_command(cmd)
