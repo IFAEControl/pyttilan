@@ -1,6 +1,6 @@
 import socket
 import logging
-
+from threading import Lock
 
 class TTiCPXExc(Exception):
     pass
@@ -118,23 +118,25 @@ class CPXModes(object):
 class CPX(object):
     def __init__(self):
         self.cpx = CPXBackend()
-
+        self._lock = Lock()
         # Helper function that executes a command and reads the response
 
     # this function only should be used with commands that returns a response
     def _process_command(self, cmd):
-        logging.info("Processing " + cmd)
+        with self._lock:
+            logging.info("Processing " + cmd)
 
-        self.cpx.execute_command(cmd)  # If an error happens with socket it will raise an exception or if it is not conn
+            self.cpx.execute_command(cmd)  # If an error happens with socket it will raise an exception or if it is not conn
 
-        data = self.cpx.read_response()
-        self.cpx.check_if_error()  # if there is an error it raises TTiCPXExc
-        return data
+            data = self.cpx.read_response()
+            self.cpx.check_if_error()  # if there is an error it raises TTiCPXExc
+            return data
 
     def _execute_command(self, cmd):
-        logging.info("Executing " + cmd)
-        self.cpx.execute_command(cmd)  # If an error happens with socket it will raise an exception or if it is not conn
-        self.cpx.check_if_error()  # if there is an error it raises TTiCPXExc
+        with self._lock:
+            logging.info("Executing " + cmd)
+            self.cpx.execute_command(cmd)  # If an error happens with socket it will raise an exception or if it is not conn
+            self.cpx.check_if_error()  # if there is an error it raises TTiCPXExc
 
     @staticmethod
     def _check_output(output):
