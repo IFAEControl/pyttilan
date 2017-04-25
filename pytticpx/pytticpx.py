@@ -29,12 +29,15 @@ class CPXBackend(object):
                                ]
 
     def connect(self, ip, port):
+        self._ip = ip
+        self._port = port
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._sock.connect((ip, port))
+        self._sock.connect((self._ip, self._port))
         self._sock_file = self._sock.makefile()
 
     def disconnect(self):
         if self._sock:
+            self._sock.shutdown()
             self._sock.close()
             self._sock = None
             self._sock_file = None
@@ -42,9 +45,10 @@ class CPXBackend(object):
     def _sock_send(self, s):
         if self._sock:
             try:
-                self._sock.send(s)
+                self._sock.sendall(s)
             except:
                 self.disconnect()
+                self.connect(self._ip, self._port)
                 raise
         else:
             raise TTiCPXExc("Client not connected")
