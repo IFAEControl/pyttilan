@@ -2,17 +2,19 @@ import socket
 import logging
 from threading import Lock
 
+
 class TTiCPXExc(Exception):
     pass
 
 
 class CPXBackend(object):
+
     def __init__(self):
         self._sock = None
         self._sock_file = None
 
         # Documentation http://resources.aimtti.com/manuals/CPX400DP_Instruction_Manual-Iss1.pdf
-        # Omitted commands "*TST?", "*TRG", "WAI", "*OPC", "*OPC?", 
+        # Omitted commands "*TST?", "*TRG", "WAI", "*OPC", "*OPC?",
         self.valid_commands = ["V1", "V2", "V1?", "V2?", "OVP1", "OVP2", "I1", "I2",
                                "V1V", "V2V", "OCP1", "OCP2", "I1?", "I2?", "OVP1?",
                                "OVP2?", "OCP1?", "OCP2?", "V1O?", "V2O?", "I1O?", "I2O?",
@@ -29,12 +31,15 @@ class CPXBackend(object):
                                ]
 
     def connect(self, ip, port):
+        self._ip = ip
+        self._port = port
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._sock.connect((ip, port))
+        self._sock.connect((self._ip, self._port))
         self._sock_file = self._sock.makefile()
 
     def disconnect(self):
         if self._sock:
+            self._sock.shutdown(socket.SHUT_RDWR)
             self._sock.close()
             self._sock = None
             self._sock_file = None
@@ -42,9 +47,10 @@ class CPXBackend(object):
     def _sock_send(self, s):
         if self._sock:
             try:
-                self._sock.send(s)
+                self._sock.sendall(s)
             except:
                 self.disconnect()
+                self.connect(self._ip, self._port)
                 raise
         else:
             raise TTiCPXExc("Client not connected")
@@ -116,6 +122,7 @@ class CPXModes(object):
 
 
 class CPX(object):
+
     def __init__(self):
         self.cpx = CPXBackend()
         self._lock = Lock()
@@ -126,7 +133,9 @@ class CPX(object):
         with self._lock:
             logging.info("Processing " + cmd)
 
-            self.cpx.execute_command(cmd)  # If an error happens with socket it will raise an exception or if it is not conn
+            # If an error happens with socket it will raise an exception or if
+            # it is not conn
+            self.cpx.execute_command(cmd)
 
             data = self.cpx.read_response()
             self.cpx.check_if_error()  # if there is an error it raises TTiCPXExc
@@ -135,12 +144,14 @@ class CPX(object):
     def _execute_command(self, cmd):
         with self._lock:
             logging.info("Executing " + cmd)
-            self.cpx.execute_command(cmd)  # If an error happens with socket it will raise an exception or if it is not conn
+            # If an error happens with socket it will raise an exception or if
+            # it is not conn
+            self.cpx.execute_command(cmd)
             self.cpx.check_if_error()  # if there is an error it raises TTiCPXExc
 
     @staticmethod
     def _check_output(output):
-        output = int(output)  ## can raise ValueError
+        output = int(output)  # can raise ValueError
         if output not in (1, 2):
             raise TTiCPXExc("Only valid values for output are 1 and 2")
         return output
@@ -152,7 +163,8 @@ class CPX(object):
     def _set_mode(self, mode):
         m = int(mode)
         if m not in (0, 2):
-            raise TTiCPXExc("Only valid modes are 0 (independent) and 2 (tracking))")
+            raise TTiCPXExc(
+                "Only valid modes are 0 (independent) and 2 (tracking))")
         cmd = "CONFIG {}".format(mode)
         return self._execute_command(cmd)
 
@@ -165,7 +177,7 @@ class CPX(object):
     def disconnect(self):
         self.cpx.disconnect()
 
-    # COMMANDS 
+    # COMMANDS
 
     def set_mode_independent(self):
         self._set_mode(CPXModes.independent)
