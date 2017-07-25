@@ -2,7 +2,8 @@ import socket
 import logging
 from threading import Lock
 
-logging.basicConfig(filename="/tmp/pytticpx.log")
+
+log = logging.getLogger(__name__)
 
 
 class TTiCPXExc(Exception):
@@ -59,7 +60,7 @@ class CPXBackend(object):
     def execute_command(self, command):
         if command.split()[0] not in self.valid_commands:
             msg = "INVALID COMMAND: {}".format(command)
-            logging.error(msg)
+            log.error(msg)
             raise Exception(msg)
         self._sock_send(str.encode(command))
 
@@ -72,7 +73,7 @@ class CPXBackend(object):
         if err != 0:
             if err & (1 << 5):
                 msg = "Command error detected"
-                logging.error(msg)
+                log.error(msg)
                 raise TTiCPXExc(msg)
 
             if err & (1 << 4):
@@ -80,40 +81,40 @@ class CPXBackend(object):
                 exe_err = int(self.read_response())
                 if 1 <= exe_err <= 9:
                     msg = "[Execution error] Internal hardware error"
-                    logging.error(msg)
+                    log.error(msg)
                     raise TTiCPXExc(msg)
                 elif exe_err == 100:
                     msg = "[Execution error] Range error"
-                    logging.error(msg)
+                    log.error(msg)
                     raise TTiCPXExc(msg)
                 elif exe_err == 101:
                     msg = "[Execution error] Corrupted data"
-                    logging.error(msg)
+                    log.error(msg)
                     raise TTiCPXExc(msg)
                 elif exe_err == 102:
                     msg = "[Execution error] There are no data"
-                    logging.error(msg)
+                    log.error(msg)
                     raise TTiCPXExc(msg)
                 elif exe_err == 103:
                     msg = "[Execution error] Second output not available"
-                    logging.error(msg)
+                    log.error(msg)
                     raise TTiCPXExc(msg)
                 elif exe_err == 104:
                     msg = "[Execution error] Command not valid with output on"
-                    logging.error(msg)
+                    log.error(msg)
                     raise TTiCPXExc(msg)
                 elif exe_err == 200:
                     msg = "[Execution error] Cannot write (read only)"
-                    logging.error(msg)
+                    log.error(msg)
                     raise TTiCPXExc(msg)
 
             if err & (1 << 3):
                 msg = "Verify timeout detected"
-                logging.error(msg)
+                log.error(msg)
                 raise TTiCPXExc(msg)
             if err & (1 << 2):
                 msg = "Query error detected"
-                logging.error(msg)
+                log.error(msg)
                 raise TTiCPXExc(msg)
 
 
@@ -131,7 +132,7 @@ class CPX(object):
     # this function only should be used with commands that returns a response
     def _process_command(self, cmd):
         with self._lock:
-            logging.info("Processing " + cmd)
+            log.info("Processing " + cmd)
 
             # If an error happens with socket it will raise an exception or if
             # it is not conn
@@ -143,7 +144,7 @@ class CPX(object):
 
     def _execute_command(self, cmd):
         with self._lock:
-            logging.info("Executing " + cmd)
+            log.info("Executing " + cmd)
             # If an error happens with socket it will raise an exception or if
             # it is not conn
             self.cpx.execute_command(cmd)
