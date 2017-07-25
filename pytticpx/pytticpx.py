@@ -2,6 +2,8 @@ import socket
 import logging
 from threading import Lock
 
+logging.basicConfig(filename="/tmp/pytticpx.log")
+
 
 class TTiCPXExc(Exception):
     pass
