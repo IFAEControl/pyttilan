@@ -6,15 +6,15 @@ from setuptools import setup, find_packages
 
 # Read README and CHANGES files for the long description
 here = os.path.abspath(os.path.dirname(__file__))
-README  = open(os.path.join(here, 'README.txt')).read()
-PACKAGEFULLNAME = 'pytticpx'
-PACKAGENAME = 'pytticpx'
-DESCRIPTION = 'Library to control remotely a TTi CPX Power Supply'
+README = open(os.path.join(here, 'README.txt')).read()
+PACKAGEFULLNAME = 'pyttilan'
+PACKAGENAME = 'pyttilan'
+DESCRIPTION = 'Library to control TTi Power Supplies over network'
 LONG_DESCRIPTION = ''
-AUTHOR = 'David Roman'
-AUTHOR_EMAIL = 'droman@ifae.es'
+AUTHOR = 'David Roman, Otger Ballester'
+AUTHOR_EMAIL = 'ifae-control@ifae.es'
 LICENSE = open(os.path.join(here, 'LICENSE')).read()
-URL = "https://gitlab.pic.es/ifaecontrol/pytticpx"
+URL = "https://github.com/IFAEControl/pyttilan"
 VERSION = '0.1.2'
 RELEASE = 'dev' not in VERSION
 
