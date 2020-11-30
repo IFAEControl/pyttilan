@@ -21,15 +21,14 @@ class Commands:
 
     @classmethod
     def validate_re_commands(cls):
+        """
+        Check if all regular expressions defining valid commands are well formatted.
+        If some regular expression is not correctly formatted this function will rise an exception"""
         for cmd in cls._valid_commands_re:
             re.compile(cmd)
 
-    def __init__(self, num_channels=1):
-        self.N = num_channels
+    def __init__(self):
         self._compiled = [re.compile(pattern) for pattern in self._valid_commands_re]
-
-        # self._single_re = "(" + ")|(".join(self._valid_commands_re) + ")"
-        # print(f"single_re: '{self._single_re}'")
 
     def validate_command(self, command):
         a = None
@@ -104,6 +103,7 @@ class TTiCPxCommands(Commands):
 
 
 class TTiPLCommands(Commands):
+    """Commands extracted from: https://resources.aimtti.com/manuals/New_PL+PL-P_Series_Instruction_Manual-Iss18.pdf"""
     _valid_commands_re = [
         r"V([1-3]) ([0-9,\.,e,\-]*)",  # set output voltage
         r"V([1-3])V ([0-9,\.,e,\-]*)",  # set output voltage with verify

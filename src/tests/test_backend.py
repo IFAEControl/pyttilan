@@ -13,9 +13,5 @@ __version__ = '0.1'
 __maintainer__ = 'Otger Ballester'
 __email__ = 'otger@ifae.es'
 
-if __name__ == '__main__':
-    pass
+#  Should do tests for backend and replace sockets so it can be tested without using a real power supply
 
-
-def test_set_irange():
-    assert False

@@ -70,9 +70,6 @@ with open('raw_output.txt', 'w') as fp:
 
     print(pl.get_irange(1) == IRangeValues.high)
     write_to_file(fp, pl, "Get current range of output 1")
-    write_to_file(fp, pl, "")
-    write_to_file(fp, pl, "")
-    write_to_file(fp, pl, "")
-    write_to_file(fp, pl, "")
+
 
 pl.disconnect()

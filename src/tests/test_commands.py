@@ -27,6 +27,6 @@ def test_validate_re_commands():
 
 def test_validate_command():
     plc = TTiPLCommands()
-    assert isinstance(plc.validate_command("V1 3.25"), re.Match) is True
-    assert isinstance(plc.validate_command("V1 0.325e-1"), re.Match) is True
+    assert isinstance(plc.validate_command("V1 3.25"), re.Match)
+    assert isinstance(plc.validate_command("V1 0.325e-1"), re.Match)
     assert plc.validate_command("V0 0.2") is None

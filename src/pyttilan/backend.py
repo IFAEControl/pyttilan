@@ -13,7 +13,7 @@ __email__ = 'ifae-control@ifae.es'
 import socket
 import logging
 from threading import Lock
-from pyttilan.commands import Commands
+from pyttilan.commands import Commands, TTiPLCommands, TTiCPxCommands
 import re
 
 log = logging.getLogger(__name__)
@@ -188,7 +188,7 @@ class TTiBackend:
 
 class CommonBackend(TTiBackend):
     """
-    This Backend is checked against a PL068 power supply.
+    This Backend has been verified against a PL068 power supply.
 
     CommonBackend contains the commands that are common to CPx and PL power supplies. For each power supply series a new
     class that inherits from this one must be created.
@@ -483,7 +483,8 @@ class CPxBackend(CommonBackend):
     """
     There are no differences between common and CPx
     """
-    pass
+    def __init__(self, num_outputs=1):
+        super().__init__(valid_commands=TTiCPxCommands(), num_outputs=num_outputs)
 
 
 class IRangeValues:
@@ -492,6 +493,9 @@ class IRangeValues:
 
 
 class PLBackend(CommonBackend):
+
+    def __init__(self, num_outputs=1):
+        super().__init__(valid_commands=TTiPLCommands(), num_outputs=num_outputs)
 
     def set_irange(self, output, value):
         if int(value) not in (1, 2):

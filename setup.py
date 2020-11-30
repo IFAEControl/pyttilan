@@ -6,52 +6,28 @@ from setuptools import setup, find_packages
 
 # Read README and CHANGES files for the long description
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.txt')).read()
-PACKAGEFULLNAME = 'pyttilan'
-PACKAGENAME = 'pyttilan'
-DESCRIPTION = 'Library to control TTi Power Supplies over network'
-LONG_DESCRIPTION = ''
-AUTHOR = 'David Roman, Otger Ballester'
-AUTHOR_EMAIL = 'ifae-control@ifae.es'
-LICENSE = open(os.path.join(here, 'LICENSE')).read()
-URL = "https://github.com/IFAEControl/pyttilan"
-VERSION = '0.1.2'
-RELEASE = 'dev' not in VERSION
+with open(os.path.join(here, 'README.md')) as fh:
+      long_description = fh.read()
 
-print(find_packages('pytticpx'))
-# Read the version information
-#execfile(os.path.join(here, '__init__.py'))
+print(find_packages(exclude=('tests',)))
 setup(
-      name=PACKAGEFULLNAME,
-      version=VERSION,
-      description=DESCRIPTION,
-      #scripts=scripts,
+      name="pyttilan",
+      version="0.2.1",
+      description="Library to control TTi Power Supplies over network",
+      long_description_content_type="text/markdown",
+      long_description=long_description,
       requires=[],
       install_requires=[],
-      provides=[PACKAGENAME],
-      author=AUTHOR,
-      author_email=AUTHOR_EMAIL,
-      license=LICENSE,
-      url=URL,
-      long_description=LONG_DESCRIPTION,
+      provides=["pyttilan"],
+      author="David Roman, Otger Ballester",
+      author_email="ifae-control@ifae.es",
+      license="CC0 1.0 Universal",
+      url="https://github.com/IFAEControl/pyttilan",
       zip_safe=False,
       classifiers=[
                    "Development Status :: 4 - Beta",
-                   "Programming Language :: Python",
+                   "Programming Language :: Python :: 3",
                   ],
-      #ata=True,
-      packages=find_packages()
-    #zip_safe=True,
+      package_dir={'': 'src'},
+      packages=find_packages(where=os.path.join('.', 'src'), exclude=('tests',))
 )
-
-# from distutils.core import setup
-#
-# setup(
-#             name="pytticpx",
-#             packages=['pytticpx'],
-#             version="0.1.1",
-#             description="Library to communicate with TTi CPX power supply",
-#             author="David Roman",
-#             author_email="droman@ifae.es",
-#             url='https://gitlab.pic.es/ifaecontrol/pytticpx',
-#         )
