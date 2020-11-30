@@ -1,0 +1,14 @@
+Sent, Received, ESR, EER, Meaning
+V1 1.35, , 0, , Set output 1 voltage to 1.35V
+OVP1 4.0, , 0, , Set output 1 over voltage protection to 4V
+I1 0.1, , 0, , Set current limit of output 1 to 0.1A
+OCP1 2.2, , 0, , Set overcurrent protection for output 1 at 2.2A
+V1?, V1 1.350, 0, , Get configured voltage for output 1
+I1?, I1 0.100, 0, , Get configured current limit for output 1
+OVP1?, 4.000, 0, , Get voltage trip setting for output 1 in Volts
+OCP1?, 2.2000, 0, , Get current trip setting for output 1 in Amperes
+V1O?, -0.006V, 0, , Read output 1 voltage
+I1O?, 0.000A, 0, , Read output 1 current
+IRANGE1 1, , 0, , Set current range of output 1 to high values
+IRANGE1 2, , 0, , Set current range of output 1 to low values
+IRANGE1?, 2, 0, , Get current range of output 1
