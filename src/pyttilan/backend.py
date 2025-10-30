@@ -348,6 +348,22 @@ class CommonBackend(TTiBackend):
 
         self._execute_command(cmd)
 
+    def enable_output_channel(self, output):
+        cmd = "RATIO OP{} 1".format(self._check_output(output))
+        self._execute_command(cmd)
+
+    def disable_output_channel(self, output):
+        cmd = "RATIO OP{} 0".format(self._check_output(output))
+        self._execute_command(cmd)
+
+    def enable_output_all(self):
+        cmd = "RATIO OPALL 1"
+        self._execute_command(cmd)
+
+    def disable_output_all(self):
+        cmd = "RATIO OPALL 0"
+        self._execute_command(cmd)
+
     def is_enabled(self, output):
         return int(self._get_status(self._check_output(output))) == 1
 
