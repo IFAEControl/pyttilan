@@ -15,6 +15,7 @@ import logging
 from threading import Lock
 from pyttilan.commands import Commands, TTiPLCommands, TTiCPxCommands
 import re
+from warnings import deprecated
 
 log = logging.getLogger(__name__)
 
@@ -322,6 +323,7 @@ class CommonBackend(TTiBackend):
     def get_ratio(self):
         return self._process_command("RATIO?")
 
+    @deprecated("Use enable_output_channel or enable_output_all instead.")
     def enable_output(self, output_1=False, output_2=False):
         if output_1:
             if output_2:
@@ -335,6 +337,7 @@ class CommonBackend(TTiBackend):
 
         self._execute_command(cmd)
 
+    @deprecated("Use disable_output_channel or disable_output_all instead.")
     def disable_output(self, output_1=False, output_2=False):
         if output_1:
             if output_2:
@@ -349,19 +352,19 @@ class CommonBackend(TTiBackend):
         self._execute_command(cmd)
 
     def enable_output_channel(self, output):
-        cmd = "RATIO OP{} 1".format(self._check_output(output))
+        cmd = "OP{} 1".format(self._check_output(output))
         self._execute_command(cmd)
 
     def disable_output_channel(self, output):
-        cmd = "RATIO OP{} 0".format(self._check_output(output))
+        cmd = "OP{} 0".format(self._check_output(output))
         self._execute_command(cmd)
 
     def enable_output_all(self):
-        cmd = "RATIO OPALL 1"
+        cmd = "OPALL 1"
         self._execute_command(cmd)
 
     def disable_output_all(self):
-        cmd = "RATIO OPALL 0"
+        cmd = "OPALL 0"
         self._execute_command(cmd)
 
     def is_enabled(self, output):
