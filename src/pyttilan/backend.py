@@ -15,6 +15,7 @@ import logging
 from threading import Lock
 from pyttilan.commands import Commands, TTiPLCommands, TTiCPxCommands
 import re
+from warnings import deprecated
 
 log = logging.getLogger(__name__)
 
@@ -176,7 +177,7 @@ class TTiBackend:
             raise TTiBackendExc(f"Only valid values for output are "
                                 f"{','.join([str(l) for l in range(1, self.n_outputs + 1)])}")
         return output
-
+    
     def connect(self, ip, port=9221):
         if self.sock is None:
             self.sock = SockCommand(ip=ip, port=port, valid_commands=self._valid_commands)
@@ -300,19 +301,19 @@ class CommonBackend(TTiBackend):
         return self._process_command("*ESE?")
 
     def set_register_limit_event_status(self, output, value):
-        cmd = "*LSE{} {}".format(output, value)
+        cmd = "*LSE{} {}".format(self._check_output(output), value)
         self._execute_command(cmd)
 
     def get_register_limit_event_status(self, output):
-        cmd = "*LSE{}?".format(output)
+        cmd = "*LSE{}?".format(self._check_output(output))
         return self._process_command(cmd)
 
     def save(self, output, store):
-        cmd = "SAV{} {}".format(output, store)
+        cmd = "SAV{} {}".format(self._check_output(output), store)
         self._execute_command(cmd)
 
     def recall(self, output, store):
-        cmd = "RCL{} {}".format(output, store)
+        cmd = "RCL{} {}".format(self._check_output(output), store)
         self._execute_command(cmd)
 
     def set_ratio(self, value):
@@ -322,7 +323,9 @@ class CommonBackend(TTiBackend):
     def get_ratio(self):
         return self._process_command("RATIO?")
 
+    @deprecated("Use enable_output_channel or enable_output_all instead.")
     def enable_output(self, output_1=False, output_2=False):
+
         if output_1:
             if output_2:
                 cmd = "OPALL 1"
@@ -335,7 +338,9 @@ class CommonBackend(TTiBackend):
 
         self._execute_command(cmd)
 
+    @deprecated("Use disable_output_channel or disable_output_all instead.")
     def disable_output(self, output_1=False, output_2=False):
+
         if output_1:
             if output_2:
                 cmd = "OPALL 0"
@@ -346,6 +351,22 @@ class CommonBackend(TTiBackend):
         else:
             return
 
+        self._execute_command(cmd)
+
+    def enable_output_channel(self, output):
+        cmd = "OP{} 1".format(self._check_output(output))
+        self._execute_command(cmd)
+
+    def disable_output_channel(self, output):
+        cmd = "OP{} 0".format(self._check_output(output))
+        self._execute_command(cmd)
+
+    def enable_output_all(self):
+        cmd = "OPALL 1"
+        self._execute_command(cmd)
+
+    def disable_output_all(self):
+        cmd = "OPALL 0"
         self._execute_command(cmd)
 
     def is_enabled(self, output):
