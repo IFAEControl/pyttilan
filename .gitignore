@@ -1,3 +1,7 @@
+#IDEs and editors
+.vscode/
+.idea/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -5,7 +9,6 @@ __pycache__/
 
 # C extensions
 *.so
-
 # Distribution / packaging
 .Python
 env/
@@ -45,6 +48,7 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
+cov/
 
 # Translations
 *.mo

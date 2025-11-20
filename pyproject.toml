@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyttilan"
+version = "0.2.2"
+description = "Library to control TTi Power Supplies over network"
+readme = { file = "README.md", content-type = "text/markdown" }
+authors = [ { name = "David Roman, Otger Ballester", email = "ifae-control@ifae.es" } ]
+license = "CC0-1.0"
+dependencies = []
+keywords = ["tti", "power-supply", "instrument-control"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/IFAEControl/pyttilan"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests"]
